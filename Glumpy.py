@@ -1,52 +1,43 @@
 from glumpy import app, gloo, gl
 import numpy
 
-# Create a window with a valid GL context
-window = app.Window()
-
 vertex = """
-  uniform float scale;
-  uniform float theta;
+  
+  uniform mat4 u_trans;         // Translation/Scaling matrix
+  uniform vec4 v_color;
   attribute vec2 position;
-  attribute vec4 color;
-  varying vec4 v_color;
+  
   void main()
   {
-    float ct = cos(theta);
-    float st = sin(theta);
-    float x = scale* (position.x*ct - position.y*st);
-    float y = scale* (position.x*st + position.y*ct);
-    gl_Position = vec4(x, y, 0.0, 1.0);
-    v_color = color;
+    gl_Position = u_trans * vec4(position, 0.0, 1.0);
   } """
 
 fragment = """
-  varying vec4 v_color;
+  uniform vec4 v_color;
   void main()
   {
       gl_FragColor = v_color;
   } """
 
+def transRotMatrix(scale, dx, dy):
+	return [[scale,0,0,0],[0,scale,0,0],[0,0,scale,0],[dx*scale,dy*scale,0,1]]
+
 # Build the program and corresponding buffers (with 4 vertices)
-quad = gloo.Program(vertex, fragment, count=4)
+left_wing = gloo.Program(vertex, fragment, count=4)
 
 # Upload data into GPU
-quad['color'] = [ (1,0,0,1), (0,1,0,1), (0,0,1,1), (1,1,0,1) ]
-quad['position'] = [ (-1,-1),   (-1,+1),   (+1,-1),   (+1,+1) ]
-quad['scale'] = 1
-quad['theta'] = 0
+left_wing['v_color'] = (1,1,1,1)
+left_wing['position'] = [ (+1,0),   (0,-1),   (-1,0),   (0,+1) ]
+left_wing['u_trans'] = transRotMatrix(1/2,1,1)
+
+# Create a window with a valid GL context
+window = app.Window()
 
 # Tell glumpy what needs to be done at each redraw
-time = 0.0
 @window.event
 def on_draw(dt):
-    global time
-
-    time += dt
     window.clear()
-    quad['scale'] = numpy.cos(time)
-    quad['theta'] = time
-    quad.draw(gl.GL_TRIANGLE_STRIP)
+    left_wing.draw(gl.GL_LINE_LOOP)
 
 # Run the app
 app.run()
