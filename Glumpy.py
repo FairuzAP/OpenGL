@@ -74,8 +74,8 @@ window = app.Window()
 @window.event
 def on_draw(dt):
     window.clear()
-    head.draw(gl.GL_LINE_LOOP)
-    body.draw(gl.GL_LINE_LOOP)
+    head.draw(gl.GL_LINE_STRIP)
+    body.draw(gl.GL_LINE_STRIP)
     left.draw(gl.GL_LINE_LOOP)
     right.draw(gl.GL_LINE_LOOP)
 
