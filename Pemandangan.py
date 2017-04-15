@@ -78,6 +78,58 @@ hill2['color'] = colorHill
 hill2['position'] = listHill
 hill2['u_trans'] = transMatrix(1,0,0,0)
 
+# The Rainbow Model
+listRainbow = []
+colorRainbow = []
+
+degreeIncrement = 5;
+currentDegree = 0;
+radius = 400;
+radiusDecrement = 15;
+collorPallete = [[201,23,11,255],[201,118,11,200],[189,201,11,255],[11,201,23,200],[11,189,201,255],[23,11,201,200],[118,11,201,255],[255,255,255,0]]
+i = 0
+
+while (i<7):
+	colhi = collorPallete[i]
+	collow = collorPallete[i+1]
+	nextx = cos(radians(currentDegree))
+	nexty = sin(radians(currentDegree))
+	listRainbow.append([nextx*radius,nexty*radius,-1])
+	colorRainbow.append(colhi)
+	if (currentDegree==0):
+		while (currentDegree < 180):
+			nextx = cos(radians(currentDegree))
+			nexty = sin(radians(currentDegree))
+			listRainbow.append([nextx*(radius-radiusDecrement),nexty*(radius-radiusDecrement),-1])
+
+			currentDegree += degreeIncrement
+			nextx = cos(radians(currentDegree))
+			nexty = sin(radians(currentDegree))		
+			listRainbow.append([nextx*radius,nexty*radius,-1])
+
+			colorRainbow.extend([collow,colhi])
+	else:	
+		while (currentDegree > 0):
+			nextx = cos(radians(currentDegree))
+			nexty = sin(radians(currentDegree))
+			listRainbow.append([nextx*(radius-radiusDecrement),nexty*(radius-radiusDecrement),-1])
+
+			currentDegree -= degreeIncrement
+			nextx = cos(radians(currentDegree))
+			nexty = sin(radians(currentDegree))
+			listRainbow.append([nextx*radius,nexty*radius,-1])
+
+			colorRainbow.extend([collow,colhi])
+
+	listRainbow.append([nextx*(radius-radiusDecrement),nexty*(radius-radiusDecrement),-1])
+	colorRainbow.append(collow)
+	radius = radius-radiusDecrement
+	i += 1
+	
+rainbow = gloo.Program(vertex, fragment, count=len(listRainbow))
+rainbow["color"] = colorRainbow
+rainbow["position"] = listRainbow
+rainbow["u_trans"] = transMatrix(1,0,-1,0)
 
 # Create a window with a valid GL context
 window = app.Window(800,600)
@@ -87,9 +139,11 @@ window = app.Window(800,600)
 def on_draw(dt):
 	window.clear()
 	sky.draw(gl.GL_POLYGON)
+	rainbow.draw(gl.GL_TRIANGLE_STRIP)
 	sun.draw(gl.GL_POLYGON)
 	hill.draw(gl.GL_TRIANGLE_STRIP)
 	hill2.draw(gl.GL_TRIANGLE_STRIP)
+
 
 # Run the app
 app.run()
