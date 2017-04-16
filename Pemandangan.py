@@ -131,6 +131,24 @@ rainbow["color"] = colorRainbow
 rainbow["position"] = listRainbow
 rainbow["u_trans"] = transMatrix(1,0,-1,0)
 
+# The Circle Model
+def drawCircle(posX,posY,radius):
+        triangleAmount=20
+        listCircle=[[posX,posY,-1]]
+        colorCircle=[[240,240,240,255]]
+        twicePi = 6.28318530718
+        for i in range (0,triangleAmount+1):
+                listCircle.append([posX + (radius * cos(i * twicePi / 20)), posY + (radius * sin(i * twicePi / triangleAmount)),-1])
+                colorCircle.append([240,240,240,255])
+        Circle = gloo.Program(vertex, fragment, count=len(listCircle))
+        Circle['color'] = colorCircle
+        Circle['position'] = listCircle
+        Circle['u_trans'] = transMatrix(3/4,-1,-1/3,0)
+        Circle.draw(gl.GL_TRIANGLE_FAN)
+
+
+
+
 # Create a window with a valid GL context
 window = app.Window(800,600)
 
@@ -143,6 +161,29 @@ def on_draw(dt):
 	sun.draw(gl.GL_POLYGON)
 	hill.draw(gl.GL_TRIANGLE_STRIP)
 	hill2.draw(gl.GL_TRIANGLE_STRIP)
+	#Mickey Mouse Cloudy thing
+	
+	#drawCircle(100,300,40)
+	#drawCircle(140,370,40)
+	#drawCircle(80,360,45)
+	drawCircle(100,380,45)
+	drawCircle(50,350,45)
+	drawCircle(140,320,45)
+	drawCircle(90,330,40)
+	drawCircle(160,380,35)
+	drawCircle(180,350,35)
+
+
+	#Some Other Cloud
+	drawCircle(400,350,45)
+	drawCircle(440,395,40)
+	drawCircle(450,315,50)
+	drawCircle(500,330,35)
+	drawCircle(500,380,47)
+	drawCircle(550,320,42)
+	drawCircle(550,410,33)
+	drawCircle(580,370,37)
+
 
 
 # Run the app
