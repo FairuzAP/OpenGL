@@ -1,5 +1,6 @@
 from glumpy import app, gloo, gl
 from math import cos, sin, radians
+from random import randint
 import triangle
 import numpy as np
 
@@ -94,25 +95,25 @@ while (i<7):
 	collow = collorPallete[i+1]
 	nextx = cos(radians(currentDegree))
 	nexty = sin(radians(currentDegree))
-	listRainbow.append([nextx*radius,nexty*radius,-1])
+	listRainbow.append([nextx*radius,nexty*radius,-2])
 	colorRainbow.append(colhi)
 	if (currentDegree==0):
 		while (currentDegree < 180):
 			nextx = cos(radians(currentDegree))
 			nexty = sin(radians(currentDegree))
-			listRainbow.append([nextx*(radius-radiusDecrement),nexty*(radius-radiusDecrement),-1])
+			listRainbow.append([nextx*(radius-radiusDecrement),nexty*(radius-radiusDecrement),-2])
 
 			currentDegree += degreeIncrement
 			nextx = cos(radians(currentDegree))
 			nexty = sin(radians(currentDegree))		
-			listRainbow.append([nextx*radius,nexty*radius,-1])
+			listRainbow.append([nextx*radius,nexty*radius,-2])
 
 			colorRainbow.extend([collow,colhi])
 	else:	
 		while (currentDegree > 0):
 			nextx = cos(radians(currentDegree))
 			nexty = sin(radians(currentDegree))
-			listRainbow.append([nextx*(radius-radiusDecrement),nexty*(radius-radiusDecrement),-1])
+			listRainbow.append([nextx*(radius-radiusDecrement),nexty*(radius-radiusDecrement),-2])
 
 			currentDegree -= degreeIncrement
 			nextx = cos(radians(currentDegree))
@@ -121,7 +122,7 @@ while (i<7):
 
 			colorRainbow.extend([collow,colhi])
 
-	listRainbow.append([nextx*(radius-radiusDecrement),nexty*(radius-radiusDecrement),-1])
+	listRainbow.append([nextx*(radius-radiusDecrement),nexty*(radius-radiusDecrement),-2])
 	colorRainbow.append(collow)
 	radius = radius-radiusDecrement
 	i += 1
@@ -134,11 +135,11 @@ rainbow["u_trans"] = transMatrix(1,0,-1,0)
 # The Circle Model
 def drawCircle(posX,posY,radius):
         triangleAmount=20
-        listCircle=[[posX,posY,-1]]
+        listCircle=[[posX,posY,-2]]
         colorCircle=[[240,240,240,255]]
         twicePi = 6.28318530718
         for i in range (0,triangleAmount+1):
-                listCircle.append([posX + (radius * cos(i * twicePi / 20)), posY + (radius * sin(i * twicePi / triangleAmount)),-1])
+                listCircle.append([posX + (radius * cos(i * twicePi / 20)), posY + (radius * sin(i * twicePi / triangleAmount)),-2])
                 colorCircle.append([240,240,240,255])
         Circle = gloo.Program(vertex, fragment, count=len(listCircle))
         Circle['color'] = colorCircle
@@ -146,12 +147,49 @@ def drawCircle(posX,posY,radius):
         Circle['u_trans'] = transMatrix(3/4,-1,-1/3,0)
         Circle.draw(gl.GL_TRIANGLE_FAN)
 
+# The Tree Model
+listTrunk = [[-325,-300,-1],[-400,-300,-1],[-333,-233,-1],[-400,84,-1],[-340,84,-1],[-375,175,-1],[-325,200,-1],[-300,300,-1]]
+colorTrunk = []
+for i in range (0, len(listTrunk)):
+	colorTrunk.append([152,101,50,255])
+trunk = gloo.Program(vertex, fragment, count=len(listTrunk))
+trunk['color'] = colorTrunk
+trunk['position'] = listTrunk
+trunk['u_trans'] = transMatrix(1,0,0,0)
+def drawBush(posX,posY,radius):
+        triangleAmount=40
+        listBush=[[posX,posY,-2]]
+        colorBush=[[255,183,187,255]]
+        twicePi = 6.28318530718
+        for i in range (0,triangleAmount+1):
+                listBush.append([posX + (radius * cos(i * twicePi / triangleAmount)), posY + (radius * sin(i * twicePi / triangleAmount)),-2])
+                colorBush.append([255,183,187,255])
+        Bush = gloo.Program(vertex, fragment, count=len(listBush))
+        Bush['color'] = colorBush
+        Bush['position'] = listBush
+        Bush['u_trans'] = transMatrix(1,0,0,0)
+        Bush.draw(gl.GL_TRIANGLE_FAN)
 
-
+# The Leaf Model
+def drawLeaf(posX,posY,rot):
+	listLeaf = [[posX+10,posY+20,-1],[posX+10,posY+10,-1],[posX,posY+10,-1],[posX,posY,-1]]
+	colorLeaf = []
+	for i in range (0, len(listLeaf)):
+		colorLeaf.append([255,183,187,255])
+	leaf = gloo.Program(vertex, fragment, count=len(listLeaf))
+	leaf['color'] = colorLeaf
+	leaf['position'] = listLeaf
+	leaf['u_trans'] = transMatrix(1,0,0,rot)
+	leaf.draw(gl.GL_TRIANGLE_STRIP)
+	
 
 # Create a window with a valid GL context
 window = app.Window(800,600)
 
+leafPos = []
+for i in range (1,75):
+	leafPos.append([randint(-400,400),randint(-300,300),randint(0,360)])
+	
 # Tell glumpy what needs to be done at each redraw
 @window.event
 def on_draw(dt):
@@ -161,8 +199,8 @@ def on_draw(dt):
 	sun.draw(gl.GL_POLYGON)
 	hill.draw(gl.GL_TRIANGLE_STRIP)
 	hill2.draw(gl.GL_TRIANGLE_STRIP)
-	#Mickey Mouse Cloudy thing
 	
+	#Mickey Mouse Cloudy thing
 	#drawCircle(100,300,40)
 	#drawCircle(140,370,40)
 	#drawCircle(80,360,45)
@@ -183,6 +221,19 @@ def on_draw(dt):
 	drawCircle(550,320,42)
 	drawCircle(550,410,33)
 	drawCircle(580,370,37)
+	
+	#A Random Tree
+	trunk.draw(gl.GL_TRIANGLE_STRIP)
+	drawBush(-300,300,90)
+	drawBush(-320,250,80)
+	drawBush(-320,250,80)
+	drawBush(-400,300,100)
+	drawBush(-400,200,50)
+	drawBush(-360,190,50)
+	drawBush(-400,160,50)
+	
+	for i in range (0,74):
+		drawLeaf(leafPos[i][0],leafPos[i][1],leafPos[i][2])
 
 
 
