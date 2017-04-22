@@ -1,5 +1,7 @@
 from glumpy import app, gloo, gl, glm, data
 import numpy as np
+from os.path import abspath
+
 
 vertex = """
     uniform mat4 u_model;       // Model matrix (local to world space)
@@ -7,33 +9,31 @@ vertex = """
     uniform mat4 u_projection;  // Projection matrix (camera to screen)
 
     attribute vec3 a_position;  // Vertex Position
-    attribute vec3 a_normal;        // Vertex normal
-    attribute vec3 a_texcoord;  // Vertex texture coordinates
+    attribute vec3 a_normal;    // Vertex normal
 
     varying vec3   v_texcoord;  // Interpolated fragment texture coordinates (out)
-    varying vec3   v_position;      // Interpolated position (out)
-    varying vec3   v_normal;        // Interpolated normal (out)
+    varying vec3   v_position;  // Interpolated position (out)
+    varying vec3   v_normal;    // Interpolated normal (out)
 
     void main()
     {
-        v_texcoord  = a_texcoord;
+        v_texcoord  = a_position;
 		v_normal = a_normal;
 		v_position = a_position;
         gl_Position = u_projection * u_view * u_model * vec4(a_position,1.0);
     } """
 
 fragment = """
-
     uniform mat4      u_model;           // Model matrix
     uniform mat4      u_view;            // View matrix
     uniform mat4      u_normal;          // Normal matrix
     uniform vec3      u_light_position;  // Light position
     uniform vec3      u_light_intensity; // Light intensity
-    uniform samplerCube u_texture;  // Texture
-	
-    varying vec3      v_normal;          // Interpolated normal (in)
-    varying vec3      v_position;        // Interpolated position (in)
-    varying vec3      v_texcoord; // Interpolated fragment texture coordinates (in)
+    uniform samplerCube u_texture;       // Texture
+
+    varying vec3      v_normal;          // Interpolated normal (out)
+    varying vec3      v_position;        // Interpolated position (out)
+    varying vec3      v_texcoord;        // Interpolated fragment texture coordinates (out)
 
     void main()
     {
@@ -52,38 +52,45 @@ fragment = """
         // 2. The color/intensities of the light: light.intensities
         // 3. The texture and texture coord: texture(tex, fragTexCoord)
         // Get texture color
-	
+
         vec4 t_color = textureCube(u_texture, v_texcoord);
         gl_FragColor = t_color * (0.1 + 0.9*brightness * vec4(u_light_intensity, 1));
     } """
 
+fragment_plain = """
+    uniform samplerCube u_texture;  // Texture
 
-#face_normal = [[0, 0, 1], [1, 0, 0], [0, 1, 0], [-1, 0, 1], [0, -1, 0], [0, 0, -1]]
-#face_normal_idx = [0, 0, 0, 0,  1, 1, 1, 1,   2, 2, 2, 2, 3, 3, 3, 3,  4, 4, 4, 4,   5, 5, 5, 5]
-#cube['a_normal']   = [face_normal[i] for i in face_normal_idx]
+    varying vec3      v_normal;     // Interpolated normal (in)
+    varying vec3      v_position;   // Interpolated position (in)
+    varying vec3      v_texcoord;   // Interpolated fragment texture coordinates (in)
 
-# Initialize the array of vertex, normal, and texture object
+    void main()
+    {
+        vec4 t_color = textureCube(u_texture, v_texcoord);
+        gl_FragColor = t_color;
+    } """
+
+
+# Initialize the array of vertex, and normal faces
 vertex_pos = [[ 1, 1, 1], [-1, 1, 1], [-1,-1, 1], [ 1,-1, 1], [ 1,-1,-1], [ 1, 1,-1], [-1, 1,-1], [-1,-1,-1]]
-#texture_coord = [[0, 0], [0, 1], [1, 1], [1, 0]]
 face_norm = [[0, 0, 1], [1, 0, 0], [0, 1, 0],[-1, 0, 1], [0, -1, 0], [0, 0, -1]]
 
 face_vertex_idx = [0, 1, 2, 3,  0, 3, 4, 5,   0, 5, 6, 1,  1, 6, 7, 2,  7, 4, 3, 2,   4, 7, 6, 5]
-#face_texture_idx = [0, 1, 2, 3,  0, 1, 2, 3,   0, 1, 2, 3,  3, 2, 1, 0,  0, 1, 2, 3,   0, 1, 2, 3]
 face_normal_idx = [0, 0, 0, 0,  1, 1, 1, 1,   2, 2, 2, 2, 3, 3, 3, 3,  4, 4, 4, 4,   5, 5, 5, 5]
 
+# Upload the texture data
 texture = np.zeros((6,1024,1024,4),dtype=np.float32).view(gloo.TextureCube)
 texture.interpolation = gl.GL_LINEAR
-texture[2] = data.get("G:\OpenGL\\Up2.png")/255.
-texture[3] = data.get("G:\OpenGL\Down2.png")/255.
-texture[0] = data.get("G:\OpenGL\Right2.png")/255.
-texture[1] = data.get("G:\OpenGL\Left2.png")/255.
-texture[4] = data.get("G:\OpenGL\Front2.png")/255.
-texture[5] = data.get("G:\OpenGL\Back2.png")/255.
+texture[2] = data.get(abspath("Up2.png"))/255.
+texture[3] = data.get(abspath("Down2.png"))/255.
+texture[0] = data.get(abspath("Right2.png"))/255.
+texture[1] = data.get(abspath("Left2.png"))/255.
+texture[4] = data.get(abspath("Front2.png"))/255.
+texture[5] = data.get(abspath("Back2.png"))/255.
 
 # Bind the vertex object to the cube program
 cube = gloo.Program(vertex, fragment)
 cube["a_position"] = [vertex_pos[i] for i in face_vertex_idx]
-cube['a_texcoord'] = [vertex_pos[i] for i in face_vertex_idx]
 cube['a_normal'] = [face_norm[i] for i in face_normal_idx]
 cube['u_texture'] = texture
 
@@ -100,7 +107,7 @@ glm.translate(view, 0,0,-5)
 cube['u_model'] = model
 cube['u_view'] = view
 cube['u_projection'] = projection
-cube["u_light_position"] = -2,-2,2
+cube["u_light_position"] = 0,0,-2
 cube["u_light_intensity"] = 1,1,1
 
 # Initiaze the window
@@ -108,6 +115,7 @@ phi = 0.5
 theta = 0.1
 kappa = 1
 window = app.Window(800,600)
+
 
 @window.event
 def on_resize(width, height):
@@ -133,6 +141,7 @@ def on_draw(dt):
     glm.rotate(model, kappa, 1, 0, 0)
     cube['u_model'] = model
     cube['u_normal'] = np.array(np.matrix(np.dot(view, model)).I.T)
+
 
 @window.event
 def on_init():
