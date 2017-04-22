@@ -7,24 +7,54 @@ vertex = """
     uniform mat4 u_projection;  // Projection matrix (camera to screen)
 
     attribute vec3 a_position;  // Vertex Position
-    attribute vec2 a_texcoord;  // Vertex texture coordinates
+    attribute vec3 a_normal;        // Vertex normal
+    attribute vec3 a_texcoord;  // Vertex texture coordinates
 
-    varying vec2   v_texcoord;  // Interpolated fragment texture coordinates (out)
+    varying vec3   v_texcoord;  // Interpolated fragment texture coordinates (out)
+    varying vec3   v_position;      // Interpolated position (out)
+    varying vec3   v_normal;        // Interpolated normal (out)
 
     void main()
     {
         v_texcoord  = a_texcoord;
+		v_normal = a_normal;
+		v_position = a_position;
         gl_Position = u_projection * u_view * u_model * vec4(a_position,1.0);
     } """
 
 fragment = """
-    uniform sampler2D u_texture;  // Texture
-    varying vec2      v_texcoord; // Interpolated fragment texture coordinates (in)
+
+    uniform mat4      u_model;           // Model matrix
+    uniform mat4      u_view;            // View matrix
+    uniform mat4      u_normal;          // Normal matrix
+    uniform vec3      u_light_position;  // Light position
+    uniform vec3      u_light_intensity; // Light intensity
+    uniform samplerCube u_texture;  // Texture
+	
+    varying vec3      v_normal;          // Interpolated normal (in)
+    varying vec3      v_position;        // Interpolated position (in)
+    varying vec3      v_texcoord; // Interpolated fragment texture coordinates (in)
 
     void main()
     {
-        vec4 t_color = texture2D(u_texture, v_texcoord);
-        gl_FragColor = t_color;
+        // Calculate normal in world coordinates
+        vec3 normal = normalize(u_normal * vec4(v_normal,1.0)).xyz;
+        // Calculate the location of this fragment (pixel) in world coordinates
+        vec3 position = vec3(u_view*u_model * vec4(v_position, 1));
+        // Calculate the vector from this pixels surface to the light source
+        vec3 surfaceToLight = u_light_position - position;
+        // Calculate the cosine of the angle of incidence (brightness)
+        float brightness = dot(normal, surfaceToLight) /
+                          (length(surfaceToLight) * length(normal));
+        brightness = max(min(brightness,1.0),0.0);
+        // Calculate final color of the pixel, based on:
+        // 1. The angle of incidence: brightness
+        // 2. The color/intensities of the light: light.intensities
+        // 3. The texture and texture coord: texture(tex, fragTexCoord)
+        // Get texture color
+	
+        vec4 t_color = textureCube(u_texture, v_texcoord);
+        gl_FragColor = t_color * (0.1 + 0.9*brightness * vec4(u_light_intensity, 1));
     } """
 
 
@@ -32,18 +62,30 @@ fragment = """
 #face_normal_idx = [0, 0, 0, 0,  1, 1, 1, 1,   2, 2, 2, 2, 3, 3, 3, 3,  4, 4, 4, 4,   5, 5, 5, 5]
 #cube['a_normal']   = [face_normal[i] for i in face_normal_idx]
 
-# Initialize the array of vertex object
+# Initialize the array of vertex, normal, and texture object
 vertex_pos = [[ 1, 1, 1], [-1, 1, 1], [-1,-1, 1], [ 1,-1, 1], [ 1,-1,-1], [ 1, 1,-1], [-1, 1,-1], [-1,-1,-1]]
-texture_coord = [[0, 0], [0, 1], [1, 1], [1, 0]]
+#texture_coord = [[0, 0], [0, 1], [1, 1], [1, 0]]
+face_norm = [[0, 0, 1], [1, 0, 0], [0, 1, 0],[-1, 0, 1], [0, -1, 0], [0, 0, -1]]
+
 face_vertex_idx = [0, 1, 2, 3,  0, 3, 4, 5,   0, 5, 6, 1,  1, 6, 7, 2,  7, 4, 3, 2,   4, 7, 6, 5]
-face_texture_idx = [0, 1, 2, 3,  0, 1, 2, 3,   0, 1, 2, 3,  3, 2, 1, 0,  0, 1, 2, 3,   0, 1, 2, 3]
+#face_texture_idx = [0, 1, 2, 3,  0, 1, 2, 3,   0, 1, 2, 3,  3, 2, 1, 0,  0, 1, 2, 3,   0, 1, 2, 3]
+face_normal_idx = [0, 0, 0, 0,  1, 1, 1, 1,   2, 2, 2, 2, 3, 3, 3, 3,  4, 4, 4, 4,   5, 5, 5, 5]
+
+texture = np.zeros((6,1024,1024,4),dtype=np.float32).view(gloo.TextureCube)
+texture.interpolation = gl.GL_LINEAR
+texture[2] = data.get("G:\OpenGL\\Up2.png")/255.
+texture[3] = data.get("G:\OpenGL\Down2.png")/255.
+texture[0] = data.get("G:\OpenGL\Right2.png")/255.
+texture[1] = data.get("G:\OpenGL\Left2.png")/255.
+texture[4] = data.get("G:\OpenGL\Front2.png")/255.
+texture[5] = data.get("G:\OpenGL\Back2.png")/255.
 
 # Bind the vertex object to the cube program
 cube = gloo.Program(vertex, fragment)
 cube["a_position"] = [vertex_pos[i] for i in face_vertex_idx]
-cube['a_texcoord'] = [texture_coord[i] for i in face_texture_idx]
-cube['u_texture'] = data.get("D:\ITB\Tugas\Grafika\OpenGL\Capture.jpg")
-
+cube['a_texcoord'] = [vertex_pos[i] for i in face_vertex_idx]
+cube['a_normal'] = [face_norm[i] for i in face_normal_idx]
+cube['u_texture'] = texture
 
 # Initiate all three matrix
 view = np.eye(4,dtype=np.float32)
@@ -58,11 +100,13 @@ glm.translate(view, 0,0,-5)
 cube['u_model'] = model
 cube['u_view'] = view
 cube['u_projection'] = projection
-
+cube["u_light_position"] = -2,-2,2
+cube["u_light_intensity"] = 1,1,1
 
 # Initiaze the window
-phi = 1
-theta = 1
+phi = 0.5
+theta = 0.1
+kappa = 1
 window = app.Window(800,600)
 
 @window.event
@@ -82,15 +126,18 @@ def on_draw(dt):
     cube.draw(gl.GL_QUADS)
 
     # Make cube rotate
+    #view = cube['u_view'].reshape(4,4)
+    #model = np.eye(4, dtype=np.float32)
     glm.rotate(model, theta, 0, 0, 1)
     glm.rotate(model, phi, 0, 1, 0)
+    glm.rotate(model, kappa, 1, 0, 0)
     cube['u_model'] = model
-
+    cube['u_normal'] = np.array(np.matrix(np.dot(view, model)).I.T)
 
 @window.event
 def on_init():
     gl.glEnable(gl.GL_DEPTH_TEST)
-
+    #gl.glDisable(gl.GL_BLEND)
 
 app.run()
 
