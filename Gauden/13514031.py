@@ -107,8 +107,8 @@ glm.translate(view, 0,0,-5)
 cube['u_model'] = model
 cube['u_view'] = view
 cube['u_projection'] = projection
-cube["u_light_position"] = 0,0,-2
-cube["u_light_intensity"] = 1,1,1
+cube["u_light_position"] = 0,0,-4
+cube["u_light_intensity"] = 2,2,2
 
 # Initiaze the window
 phi = 0.5
@@ -136,9 +136,9 @@ def on_draw(dt):
     # Make cube rotate
     #view = cube['u_view'].reshape(4,4)
     #model = np.eye(4, dtype=np.float32)
-    glm.rotate(model, theta, 0, 0, 1)
-    glm.rotate(model, phi, 0, 1, 0)
-    glm.rotate(model, kappa, 1, 0, 0)
+    glm.rotate(model, theta, 0, 1, 0)
+    glm.rotate(model, phi, 0.3, 0, 0)
+    glm.rotate(model, kappa, 0, 0.7, 0)
     cube['u_model'] = model
     cube['u_normal'] = np.array(np.matrix(np.dot(view, model)).I.T)
 
